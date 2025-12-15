@@ -86,18 +86,30 @@ final class WebhookManager
      * @param string $event Event name
      * @param mixed $payload Payload
      * @param bool $success Success status
-     * @return WebhookDelivery
+     * @return WebhookDelivery|null
      */
-    private function trackDelivery(WebhookEndpoint $endpoint, string $event, mixed $payload, bool $success): WebhookDelivery
+    private function trackDelivery(WebhookEndpoint $endpoint, string $event, mixed $payload, bool $success): ?WebhookDelivery
     {
-        return WebhookDelivery::create([
-            'endpoint_id' => $endpoint->id,
-            'event' => $event,
-            'payload' => $payload,
-            'succeeded_at' => $success ? now() : null,
-            'failed_at' => $success ? null : now(),
-            'error_message' => $success ? null : 'Delivery failed',
-        ]);
+        try {
+            return WebhookDelivery::create([
+                'endpoint_id' => $endpoint->id,
+                'event' => $event,
+                'payload' => is_array($payload) ? $payload : ['data' => $payload],
+                'status_code' => $success ? 200 : null,
+                'succeeded_at' => $success ? now()->toDateTimeString() : null,
+                'attempts' => 1,
+            ]);
+        } catch (\Throwable $e) {
+            // Log error but don't fail the webhook dispatch
+            if (function_exists('log_error')) {
+                log_error('Failed to track webhook delivery', [
+                    'error' => $e->getMessage(),
+                    'endpoint_id' => $endpoint->id,
+                    'event' => $event,
+                ]);
+            }
+            return null;
+        }
     }
 }
 

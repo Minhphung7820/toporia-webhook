@@ -266,7 +266,10 @@ final class WebhookDispatcher implements WebhookDispatcherInterface
     private function generateIdempotencyKey(string $event, mixed $payload, string $endpoint): string
     {
         $payloadString = is_string($payload) ? $payload : json_encode($payload);
-        return hash('sha256', $event . $payloadString . $endpoint);
+        $timestamp = (string) time();
+        $nonce = bin2hex(random_bytes(8));
+
+        return hash('sha256', $event . $payloadString . $endpoint . $timestamp . $nonce);
     }
 
     /**
