@@ -75,6 +75,9 @@ final class WebhookReceiver implements WebhookReceiverInterface
             throw new \RuntimeException('Invalid webhook signature');
         }
 
+        // Validate timestamp for replay attack protection
+        $this->validateTimestamp($request);
+
         // Extract event and payload
         $event = $this->extractEvent($request);
         $payload = $this->extractPayload($request);
@@ -157,6 +160,73 @@ final class WebhookReceiver implements WebhookReceiverInterface
         }
 
         return $signature;
+    }
+
+    /**
+     * Validate webhook timestamp for replay attack protection.
+     *
+     * Prevents replay attacks by rejecting webhooks with timestamps older than 5 minutes.
+     *
+     * @param Request $request HTTP request
+     * @return void
+     * @throws \RuntimeException If timestamp is invalid or too old
+     */
+    private function validateTimestamp(Request $request): void
+    {
+        // Extract timestamp from payload or header
+        $timestamp = null;
+
+        // Try payload first
+        $payload = $this->extractPayload($request);
+        if (isset($payload['timestamp'])) {
+            $timestamp = $payload['timestamp'];
+        }
+
+        // Fallback to header
+        if ($timestamp === null) {
+            $timestamp = $request->header('X-Webhook-Timestamp');
+        }
+
+        // If no timestamp provided, reject
+        if ($timestamp === null) {
+            $this->log('warning', 'Webhook rejected: missing timestamp', [
+                'endpoint' => $request->path(),
+            ]);
+            throw new \RuntimeException('Webhook timestamp is required for replay attack protection');
+        }
+
+        // Convert to integer
+        $timestamp = (int) $timestamp;
+
+        // Get current timestamp
+        $currentTimestamp = now()->getTimestamp();
+
+        // Calculate age in seconds
+        $age = abs($currentTimestamp - $timestamp);
+
+        // Reject if older than 5 minutes (300 seconds)
+        $maxAge = 300;
+        if ($age > $maxAge) {
+            $this->log('warning', 'Webhook rejected: timestamp too old (replay attack protection)', [
+                'endpoint' => $request->path(),
+                'webhook_timestamp' => $timestamp,
+                'current_timestamp' => $currentTimestamp,
+                'age_seconds' => $age,
+            ]);
+            throw new \RuntimeException(
+                "Webhook timestamp is too old (age: {$age}s, max: {$maxAge}s). Possible replay attack."
+            );
+        }
+
+        // Also reject future timestamps (clock skew tolerance: 5 minutes)
+        if ($timestamp > $currentTimestamp + $maxAge) {
+            $this->log('warning', 'Webhook rejected: timestamp in future', [
+                'endpoint' => $request->path(),
+                'webhook_timestamp' => $timestamp,
+                'current_timestamp' => $currentTimestamp,
+            ]);
+            throw new \RuntimeException('Webhook timestamp is in the future. Check server clock.');
+        }
     }
 
     /**

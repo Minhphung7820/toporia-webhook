@@ -35,6 +35,7 @@ final class WebhookDelivery extends Model
         'succeeded_at',
         'failed_at',
         'error_message',
+        'idempotency_key',
     ];
 
     protected $casts = [
