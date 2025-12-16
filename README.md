@@ -69,7 +69,21 @@ A comprehensive webhook dispatching and receiving package for Toporia Framework 
 composer require toporia/webhook
 ```
 
-### 2. Publish Configuration
+### 2. Auto-Discovery
+
+This package uses Toporia's **Package Auto-Discovery** system. After installation:
+
+- **Service Provider** is automatically registered - no manual registration required
+- **Configuration** is automatically discovered from `extra.toporia.config` in composer.json
+- **Migrations** are automatically included when running `php console migrate`
+
+To rebuild the package manifest manually:
+
+```bash
+php console package:discover
+```
+
+### 3. Publish Configuration (Optional)
 
 ```bash
 php console vendor:publish --provider="Toporia\Webhook\WebhookServiceProvider"
@@ -77,7 +91,7 @@ php console vendor:publish --provider="Toporia\Webhook\WebhookServiceProvider"
 
 This publishes `config/webhook.php` to your application.
 
-### 3. Run Migrations
+### 4. Run Migrations
 
 ```bash
 php console migrate
@@ -88,7 +102,9 @@ This creates:
 - `webhook_deliveries` - Delivery tracking and audit log
 - `webhook_failures` - Dead Letter Queue for failed webhooks
 
-### 4. Configure Environment
+Package migrations are automatically discovered and included.
+
+### 5. Configure Environment
 
 Add to your `.env` file:
 
