@@ -110,7 +110,15 @@ final class WebhookServiceProvider extends ServiceProvider
      */
     public function boot(ContainerInterface $container): void
     {
-        // Webhook services are ready
+        // Publish routes
+        $this->publishes([
+            __DIR__ . '/../routes/webhook.php' => 'routes/webhook.php',
+        ], 'webhook-routes');
+
+        // Publish config
+        $this->publishes([
+            __DIR__ . '/../config/webhook.php' => 'config/webhook.php',
+        ], 'webhook-config');
     }
 }
 

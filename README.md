@@ -83,13 +83,22 @@ To rebuild the package manifest manually:
 php console package:discover
 ```
 
-### 3. Publish Configuration (Optional)
+### 3. Publish Routes and Configuration
 
 ```bash
+# Publish routes (required)
+php console vendor:publish --tag=webhook-routes
+
+# Publish config (optional)
+php console vendor:publish --tag=webhook-config
+
+# Or publish both at once
 php console vendor:publish --provider="Toporia\Webhook\WebhookServiceProvider"
 ```
 
-This publishes `config/webhook.php` to your application.
+This publishes:
+- `routes/webhook.php` - Webhook routes (inbound endpoints)
+- `config/webhook.php` - Configuration file (optional)
 
 ### 4. Run Migrations
 
